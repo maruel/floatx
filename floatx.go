@@ -229,7 +229,6 @@ func (f F8E4M3Fn) Components() (uint8, uint8, uint8) {
 func (f F8E4M3Fn) Float32() float32 {
 	const exponentMask = (1 << (f8E4M3SignOffset - f8E4M3ExponentOffset)) - 1
 	const exponentBias = (1<<(f8E4M3SignOffset-f8E4M3ExponentOffset))/2 - 1
-	const f32exponentMask = (1 << (f32SignOffset - f32ExponentOffset)) - 1
 	sign8, exponent8, mantissa8 := f.Components()
 	// Realign sign right away.
 	sign := uint32(sign8) << f32SignOffset
