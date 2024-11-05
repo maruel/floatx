@@ -2,9 +2,9 @@
 
 Implementation of floating point number types often used in deep neural networks (DNN).
 
-- float8 E4M3 [FP8E4M3](https://pkg.go.dev/github.com/maruel/floatx#FP8E4M3)
-- float8 E4M3Fn [FP8E4M3Fn](https://pkg.go.dev/github.com/maruel/floatx#FP8E4M3Fn)
-- float8 E5M2 [FP8E5M2](https://pkg.go.dev/github.com/maruel/floatx#FP8E5M2)
+- float8 E4M3 [F8E4M3](https://pkg.go.dev/github.com/maruel/floatx#F8E4M3)
+- float8 E4M3Fn [F8E4M3Fn](https://pkg.go.dev/github.com/maruel/floatx#F8E4M3Fn)
+- float8 E5M2 [F8E5M2](https://pkg.go.dev/github.com/maruel/floatx#F8E5M2)
 - float16 [F16](https://pkg.go.dev/github.com/maruel/floatx#F16)
 - bfloat16 [BF16](https://pkg.go.dev/github.com/maruel/floatx#BF16)
 
