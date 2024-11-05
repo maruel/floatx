@@ -121,6 +121,32 @@ func genF8E4M3() []testData {
 	return out[:]
 }
 
+func genF8E4M3Fn() []testData {
+	const (
+		signOffset     = 7
+		exponentOffset = 3
+		exponentMask   = (1 << (signOffset - exponentOffset)) - 1
+		mantissaMask   = (1 << exponentOffset) - 1
+	)
+	var out [1 << 8]testData
+	for i := range out {
+		x := testData{
+			V:        fmt.Sprintf("0x%02x", i),
+			Sign:     uint8(i >> signOffset),
+			Exponent: uint8((i >> exponentOffset) & exponentMask),
+			Mantissa: uint16(i & mantissaMask),
+		}
+		f := floatx.F8E4M3Fn(i).Float32()
+		if math.IsNaN(float64(f)) {
+			x.F = "float32(math.NaN())"
+		} else {
+			x.F = fmt.Sprintf("%g", f)
+		}
+		out[i] = x
+	}
+	return out[:]
+}
+
 func genF8E5M2() []testData {
 	const (
 		signOffset     = 7
@@ -172,5 +198,6 @@ func main() {
 	generate("bf16TestData", "bf16_data_test.go", genBF16())
 	generate("f16TestData", "f16_data_test.go", genF16())
 	generate("f8E4M3TestData", "f8e4m3_data_test.go", genF8E4M3())
+	generate("f8E4M3FnTestData", "f8e4m3fn_data_test.go", genF8E4M3Fn())
 	generate("f8E5M2TestData", "f8e5m2_data_test.go", genF8E5M2())
 }
