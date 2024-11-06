@@ -252,3 +252,43 @@ func testOne16[T fn16](t *testing.T, f T, line testData) {
 		}
 	}
 }
+
+func Benchmark_BF16(b *testing.B) {
+	var dummy float32
+	for i := range b.N {
+		dummy += floatx.BF16(uint16(i)).Float32()
+	}
+	b.Log(dummy)
+}
+
+func Benchmark_F16(b *testing.B) {
+	var dummy float32
+	for i := range b.N {
+		dummy += floatx.F16(uint16(i)).Float32()
+	}
+	b.Log(dummy)
+}
+
+func Benchmark_F8E4M3(b *testing.B) {
+	var dummy float32
+	for i := range b.N {
+		dummy += floatx.F8E4M3(uint8(i)).Float32()
+	}
+	b.Log(dummy)
+}
+
+func Benchmark_F8E4M3Fn(b *testing.B) {
+	var dummy float32
+	for i := range b.N {
+		dummy += floatx.F8E4M3Fn(uint8(i)).Float32()
+	}
+	b.Log(dummy)
+}
+
+func Benchmark_F8E55M2(b *testing.B) {
+	var dummy float32
+	for i := range b.N {
+		dummy += floatx.F8E5M2(uint8(i)).Float32()
+	}
+	b.Log(dummy)
+}

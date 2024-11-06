@@ -175,7 +175,7 @@ func genF8E5M2() []testData {
 	return out[:]
 }
 
-func generate(name, filename string, td []testData) {
+func generateTest(name, filename string, td []testData) {
 	data := map[string]any{
 		"Name": name,
 		"Data": td,
@@ -195,9 +195,9 @@ func generate(name, filename string, td []testData) {
 }
 
 func main() {
-	generate("bf16TestData", "bf16_data_test.go", genBF16())
-	generate("f16TestData", "f16_data_test.go", genF16())
-	generate("f8E4M3TestData", "f8e4m3_data_test.go", genF8E4M3())
-	generate("f8E4M3FnTestData", "f8e4m3fn_data_test.go", genF8E4M3Fn())
-	generate("f8E5M2TestData", "f8e5m2_data_test.go", genF8E5M2())
+	generateTest("bf16TestData", "bf16_data_test.go", genBF16())
+	generateTest("f16TestData", "f16_data_test.go", genF16())
+	generateTest("f8E4M3TestData", "f8e4m3_data_test.go", genF8E4M3())
+	generateTest("f8E4M3FnTestData", "f8e4m3fn_data_test.go", genF8E4M3Fn())
+	generateTest("f8E5M2TestData", "f8e5m2_data_test.go", genF8E5M2())
 }
