@@ -253,42 +253,69 @@ func testOne16[T fn16](t *testing.T, f T, line testData) {
 	}
 }
 
-func Benchmark_BF16(b *testing.B) {
+// Not too large so it doesn't trash the cache.
+var largeArray = make([]byte, 1024)
+
+var benchmarkResultBF16 floatx.BF16
+
+func Benchmark_DecodeBF16(b *testing.B) {
+	var dummy floatx.BF16
+	for i := range b.N {
+		offset := (2 * i) % (len(largeArray) - 2)
+		dummy += floatx.DecodeBF16(largeArray[offset:])
+	}
+	benchmarkResultBF16 = dummy
+}
+
+var benchmarkResultF16 floatx.F16
+
+func Benchmark_DecodeF16(b *testing.B) {
+	var dummy floatx.F16
+	for i := range b.N {
+		offset := (2 * i) % (len(largeArray) - 2)
+		dummy += floatx.DecodeF16(largeArray[offset:])
+	}
+	benchmarkResultF16 = dummy
+}
+
+var benchmarkResultFloat float32
+
+func Benchmark_BF16_Float32(b *testing.B) {
 	var dummy float32
 	for i := range b.N {
 		dummy += floatx.BF16(uint16(i)).Float32()
 	}
-	b.Log(dummy)
+	benchmarkResultFloat = dummy
 }
 
-func Benchmark_F16(b *testing.B) {
+func Benchmark_F16_Float32(b *testing.B) {
 	var dummy float32
 	for i := range b.N {
 		dummy += floatx.F16(uint16(i)).Float32()
 	}
-	b.Log(dummy)
+	benchmarkResultFloat = dummy
 }
 
-func Benchmark_F8E4M3(b *testing.B) {
+func Benchmark_F8E4M3_Float32(b *testing.B) {
 	var dummy float32
 	for i := range b.N {
 		dummy += floatx.F8E4M3(uint8(i)).Float32()
 	}
-	b.Log(dummy)
+	benchmarkResultFloat = dummy
 }
 
-func Benchmark_F8E4M3Fn(b *testing.B) {
+func Benchmark_F8E4M3Fn_Float32(b *testing.B) {
 	var dummy float32
 	for i := range b.N {
 		dummy += floatx.F8E4M3Fn(uint8(i)).Float32()
 	}
-	b.Log(dummy)
+	benchmarkResultFloat = dummy
 }
 
-func Benchmark_F8E55M2(b *testing.B) {
+func Benchmark_F8E55M2_Float32(b *testing.B) {
 	var dummy float32
 	for i := range b.N {
 		dummy += floatx.F8E5M2(uint8(i)).Float32()
 	}
-	b.Log(dummy)
+	benchmarkResultFloat = dummy
 }
