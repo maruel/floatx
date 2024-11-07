@@ -46,7 +46,6 @@ func (b BF16) Components() (uint8, uint8, uint8) {
 func (b BF16) Float32() float32 {
 	const exponentMask = (1 << (bf16SignOffset - bf16ExponentOffset)) - 1
 	const exponentBias = (1<<(bf16SignOffset-bf16ExponentOffset))/2 - 1
-	const f32exponentMask = (1 << (f32SignOffset - f32ExponentOffset)) - 1
 	sign8, exponent8, mantissa8 := b.Components()
 	// Realign sign right away.
 	sign := uint32(sign8) << f32SignOffset
@@ -110,7 +109,6 @@ func (f F16) Components() (uint8, uint8, uint16) {
 func (f F16) Float32() float32 {
 	const exponentMask = (1 << (f16SignOffset - f16ExponentOffset)) - 1
 	const exponentBias = (1<<(f16SignOffset-f16ExponentOffset))/2 - 1
-	const f32exponentMask = (1 << (f32SignOffset - f32ExponentOffset)) - 1
 	sign8, exponent8, mantissa8 := f.Components()
 	// Realign sign right away.
 	sign := uint32(sign8) << f32SignOffset
@@ -145,7 +143,8 @@ const (
 	// https://en.wikipedia.org/wiki/Single-precision_floating-point_format
 	f32SignOffset     = 31
 	f32ExponentOffset = 23
-	f32ExponentBias   = 127
+	f32ExponentBias   = (1<<(f32SignOffset-f32ExponentOffset))/2 - 1
+	f32exponentMask   = (1 << (f32SignOffset - f32ExponentOffset)) - 1
 )
 
 // F8E4M3
@@ -178,7 +177,6 @@ func (f F8E4M3) Components() (uint8, uint8, uint8) {
 func (f F8E4M3) Float32() float32 {
 	const exponentMask = (1 << (f8E4M3SignOffset - f8E4M3ExponentOffset)) - 1
 	const exponentBias = (1<<(f8E4M3SignOffset-f8E4M3ExponentOffset))/2 - 1
-	const f32exponentMask = (1 << (f32SignOffset - f32ExponentOffset)) - 1
 	sign8, exponent8, mantissa8 := f.Components()
 	// Realign sign right away.
 	sign := uint32(sign8) << f32SignOffset
@@ -284,7 +282,6 @@ func (f F8E5M2) Components() (uint8, uint8, uint8) {
 func (f F8E5M2) Float32() float32 {
 	const exponentMask = (1 << (f8E5M2SignOffset - f8E5M2ExponentOffset)) - 1
 	const exponentBias = (1<<(f8E5M2SignOffset-f8E5M2ExponentOffset))/2 - 1
-	const f32exponentMask = (1 << (f32SignOffset - f32ExponentOffset)) - 1
 	sign8, exponent8, mantissa8 := f.Components()
 	// Realign sign right away.
 	sign := uint32(sign8) << f32SignOffset
