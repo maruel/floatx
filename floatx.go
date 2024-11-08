@@ -12,11 +12,13 @@ import (
 	"math"
 )
 
-// BF16
-
+// BF16 bit allocation.
 const (
-	bf16SignOffset     = 15
-	bf16ExponentOffset = 7
+	BF16SignOffset     = 15
+	BF16ExponentOffset = 7
+	BF16ExponentMask   = (1 << (BF16SignOffset - BF16ExponentOffset)) - 1
+	BF16ExponentBias   = (1<<(BF16SignOffset-BF16ExponentOffset))/2 - 1
+	BF16MantissaMask   = (1 << BF16ExponentOffset) - 1
 )
 
 // BF16 represents a Google Brain float 16, or bfloat16.
@@ -34,29 +36,25 @@ func DecodeBF16(b []byte) BF16 {
 
 // Components returns the sign, exponent and mantissa bits separated.
 func (b BF16) Components() (uint8, uint8, uint8) {
-	const exponentMask = (1 << (bf16SignOffset - bf16ExponentOffset)) - 1
-	const mantissaMask = (1 << bf16ExponentOffset) - 1
-	sign := b >> bf16SignOffset
-	exponent := (b >> bf16ExponentOffset) & exponentMask
-	mantissa := b & mantissaMask
+	sign := b >> BF16SignOffset
+	exponent := (b >> BF16ExponentOffset) & BF16ExponentMask
+	mantissa := b & BF16MantissaMask
 	return uint8(sign), uint8(exponent), uint8(mantissa)
 }
 
 // Float32 returns the float32 equivalent.
 func (b BF16) Float32() float32 {
-	const exponentMask = (1 << (bf16SignOffset - bf16ExponentOffset)) - 1
-	const exponentBias = (1<<(bf16SignOffset-bf16ExponentOffset))/2 - 1
 	sign8, exponent8, mantissa8 := b.Components()
 	// Realign sign right away.
-	sign := uint32(sign8) << f32SignOffset
+	sign := uint32(sign8) << F32SignOffset
 	exponent := uint32(exponent8)
 	// Realign mantissa right away. The fraction is 7 bits in bfloat16 and 23 bits in float32.
-	mantissa := uint32(mantissa8) << (f32ExponentOffset - bf16ExponentOffset)
-	if exponent == exponentMask {
+	mantissa := uint32(mantissa8) << (F32ExponentOffset - BF16ExponentOffset)
+	if exponent == BF16ExponentMask {
 		// Either Inf or NaN.
 		// https://en.wikipedia.org/wiki/Bfloat16_floating-point_format#Positive_and_negative_infinity
 		// https://en.wikipedia.org/wiki/Bfloat16_floating-point_format#Not_a_Number
-		return math.Float32frombits(sign | (f32exponentMask << f32ExponentOffset) | mantissa)
+		return math.Float32frombits(sign | (F32ExponentMask << F32ExponentOffset) | mantissa)
 	}
 	// If no exponent.
 	if exponent == 0 {
@@ -66,21 +64,25 @@ func (b BF16) Float32() float32 {
 		// Normalize subnormal numbers.
 		// https://en.wikipedia.org/wiki/Bfloat16_floating-point_format#Exponent_encoding
 		exponent++
-		for mantissa&(exponentMask<<f32ExponentOffset) == 0 {
+		for mantissa&(BF16ExponentMask<<F32ExponentOffset) == 0 {
 			mantissa <<= 1
 			exponent--
 		}
-		mantissa &= (1 << f32ExponentOffset) - 1
+		mantissa &= F32MantissaMask
 	}
-	exponent += f32ExponentBias - exponentBias
-	return math.Float32frombits(sign | (exponent << f32ExponentOffset) | mantissa)
+	exponent += F32ExponentBias - BF16ExponentBias
+	return math.Float32frombits(sign | (exponent << F32ExponentOffset) | mantissa)
 }
 
 // F16
 
+// F16 bit allocation.
 const (
-	f16SignOffset     = 15
-	f16ExponentOffset = 10
+	F16SignOffset     = 15
+	F16ExponentOffset = 10
+	F16ExponentMask   = (1 << (F16SignOffset - F16ExponentOffset)) - 1
+	F16ExponentBias   = (1<<(F16SignOffset-F16ExponentOffset))/2 - 1
+	F16MantissaMask   = (1 << F16ExponentOffset) - 1
 )
 
 // F16 represents a IEEE 754 half-precision binary floating-point format
@@ -97,27 +99,23 @@ func DecodeF16(b []byte) F16 {
 
 // Components returns the sign, exponent and mantissa bits separated.
 func (f F16) Components() (uint8, uint8, uint16) {
-	const exponentMask = (1 << (f16SignOffset - f16ExponentOffset)) - 1
-	const mantissaMask = (1 << f16ExponentOffset) - 1
-	sign := f >> f16SignOffset
-	exponent := (f >> f16ExponentOffset) & exponentMask
-	mantissa := f & mantissaMask
+	sign := f >> F16SignOffset
+	exponent := (f >> F16ExponentOffset) & F16ExponentMask
+	mantissa := f & F16MantissaMask
 	return uint8(sign), uint8(exponent), uint16(mantissa)
 }
 
 // Float32 returns the float32 equivalent.
 func (f F16) Float32() float32 {
-	const exponentMask = (1 << (f16SignOffset - f16ExponentOffset)) - 1
-	const exponentBias = (1<<(f16SignOffset-f16ExponentOffset))/2 - 1
 	sign8, exponent8, mantissa8 := f.Components()
 	// Realign sign right away.
-	sign := uint32(sign8) << f32SignOffset
+	sign := uint32(sign8) << F32SignOffset
 	exponent := uint32(exponent8)
 	// Realign mantissa right away. The fraction is 10 bits in float16 and 23 bits in float32.
-	mantissa := uint32(mantissa8) << (f32ExponentOffset - f16ExponentOffset)
-	if exponent == exponentMask {
+	mantissa := uint32(mantissa8) << (F32ExponentOffset - F16ExponentOffset)
+	if exponent == F16ExponentMask {
 		// Either Inf or NaN.
-		return math.Float32frombits(sign | (f32exponentMask << f32ExponentOffset) | mantissa)
+		return math.Float32frombits(sign | (F32ExponentMask << F32ExponentOffset) | mantissa)
 	}
 	// If no exponent.
 	if exponent == 0 {
@@ -127,31 +125,37 @@ func (f F16) Float32() float32 {
 		// Normalize subnormal numbers.
 		// https://en.wikipedia.org/wiki/Half-precision_floating-point_format#Exponent_encoding
 		exponent++
-		for mantissa&(exponentMask<<f32ExponentOffset) == 0 {
+		for mantissa&(F16ExponentMask<<F32ExponentOffset) == 0 {
 			mantissa <<= 1
 			exponent--
 		}
-		mantissa &= (1 << f32ExponentOffset) - 1
+		mantissa &= F32MantissaMask
 	}
-	exponent += f32ExponentBias - exponentBias
-	return math.Float32frombits(sign | (exponent << f32ExponentOffset) | mantissa)
+	exponent += F32ExponentBias - F16ExponentBias
+	return math.Float32frombits(sign | (exponent << F32ExponentOffset) | mantissa)
 }
 
 // F32
 
+// F32 bit allocation.
 const (
 	// https://en.wikipedia.org/wiki/Single-precision_floating-point_format
-	f32SignOffset     = 31
-	f32ExponentOffset = 23
-	f32ExponentBias   = (1<<(f32SignOffset-f32ExponentOffset))/2 - 1
-	f32exponentMask   = (1 << (f32SignOffset - f32ExponentOffset)) - 1
+	F32SignOffset     = 31
+	F32ExponentOffset = 23
+	F32ExponentBias   = (1<<(F32SignOffset-F32ExponentOffset))/2 - 1
+	F32ExponentMask   = (1 << (F32SignOffset - F32ExponentOffset)) - 1
+	F32MantissaMask   = (1 << F32ExponentOffset) - 1
 )
 
 // F8E4M3
 
+// F8E4M3 and F8E4M3Fn bit allocation.
 const (
-	f8E4M3SignOffset     = 7
-	f8E4M3ExponentOffset = 3
+	F8E4M3SignOffset     = 7
+	F8E4M3ExponentOffset = 3
+	F8E4M3ExponentMask   = (1 << (F8E4M3SignOffset - F8E4M3ExponentOffset)) - 1
+	F8E4M3ExponentBias   = (1<<(F8E4M3SignOffset-F8E4M3ExponentOffset))/2 - 1
+	F8E4M3MantissaMask   = (1 << F8E4M3ExponentOffset) - 1
 )
 
 // F8E4M3 represents a float8 with 4 exponent bits and 3 mantissa bits.
@@ -165,27 +169,23 @@ type F8E4M3 uint8
 
 // Components returns the sign, exponent and mantissa bits separated.
 func (f F8E4M3) Components() (uint8, uint8, uint8) {
-	const exponentMask = (1 << (f8E4M3SignOffset - f8E4M3ExponentOffset)) - 1
-	const mantissaMask = (1 << f8E4M3ExponentOffset) - 1
-	sign := f >> f8E4M3SignOffset
-	exponent := (f >> f8E4M3ExponentOffset) & exponentMask
-	mantissa := f & mantissaMask
+	sign := f >> F8E4M3SignOffset
+	exponent := (f >> F8E4M3ExponentOffset) & F8E4M3ExponentMask
+	mantissa := f & F8E4M3MantissaMask
 	return uint8(sign), uint8(exponent), uint8(mantissa)
 }
 
 // Float32 returns the float32 equivalent.
 func (f F8E4M3) Float32() float32 {
-	const exponentMask = (1 << (f8E4M3SignOffset - f8E4M3ExponentOffset)) - 1
-	const exponentBias = (1<<(f8E4M3SignOffset-f8E4M3ExponentOffset))/2 - 1
 	sign8, exponent8, mantissa8 := f.Components()
 	// Realign sign right away.
-	sign := uint32(sign8) << f32SignOffset
+	sign := uint32(sign8) << F32SignOffset
 	exponent := uint32(exponent8)
 	// Realign mantissa right away. The fraction is 3 bits in float8 E4M3 and 23 bits in float32.
-	mantissa := uint32(mantissa8) << (f32ExponentOffset - f8E4M3ExponentOffset)
-	if exponent == exponentMask {
+	mantissa := uint32(mantissa8) << (F32ExponentOffset - F8E4M3ExponentOffset)
+	if exponent == F8E4M3ExponentMask {
 		// Either Inf or NaN.
-		return math.Float32frombits(sign | (f32exponentMask << f32ExponentOffset) | mantissa)
+		return math.Float32frombits(sign | (F32ExponentMask << F32ExponentOffset) | mantissa)
 	}
 	// If no exponent.
 	if exponent == 0 {
@@ -194,14 +194,14 @@ func (f F8E4M3) Float32() float32 {
 		}
 		// Normalize subnormal numbers.
 		exponent++
-		for mantissa&(exponentMask<<f32ExponentOffset) == 0 {
+		for mantissa&(F8E4M3ExponentMask<<F32ExponentOffset) == 0 {
 			mantissa <<= 1
 			exponent--
 		}
-		mantissa &= (1 << f32ExponentOffset) - 1
+		mantissa &= F32MantissaMask
 	}
-	exponent += f32ExponentBias - exponentBias
-	return math.Float32frombits(sign | (exponent << f32ExponentOffset) | mantissa)
+	exponent += F32ExponentBias - F8E4M3ExponentBias
+	return math.Float32frombits(sign | (exponent << F32ExponentOffset) | mantissa)
 }
 
 // F8E4M3Fn
@@ -215,24 +215,20 @@ type F8E4M3Fn uint8
 
 // Components returns the sign, exponent and mantissa bits separated.
 func (f F8E4M3Fn) Components() (uint8, uint8, uint8) {
-	const exponentMask = (1 << (f8E4M3SignOffset - f8E4M3ExponentOffset)) - 1
-	const mantissaMask = (1 << f8E4M3ExponentOffset) - 1
-	sign := f >> f8E4M3SignOffset
-	exponent := (f >> f8E4M3ExponentOffset) & exponentMask
-	mantissa := f & mantissaMask
+	sign := f >> F8E4M3SignOffset
+	exponent := (f >> F8E4M3ExponentOffset) & F8E4M3ExponentMask
+	mantissa := f & F8E4M3MantissaMask
 	return uint8(sign), uint8(exponent), uint8(mantissa)
 }
 
 // Float32 returns the float32 equivalent.
 func (f F8E4M3Fn) Float32() float32 {
-	const exponentMask = (1 << (f8E4M3SignOffset - f8E4M3ExponentOffset)) - 1
-	const exponentBias = (1<<(f8E4M3SignOffset-f8E4M3ExponentOffset))/2 - 1
 	sign8, exponent8, mantissa8 := f.Components()
 	// Realign sign right away.
-	sign := uint32(sign8) << f32SignOffset
+	sign := uint32(sign8) << F32SignOffset
 	exponent := uint32(exponent8)
 	// Realign mantissa right away. The fraction is 3 bits in float8 E4M3 and 23 bits in float32.
-	mantissa := uint32(mantissa8) << (f32ExponentOffset - f8E4M3ExponentOffset)
+	mantissa := uint32(mantissa8) << (F32ExponentOffset - F8E4M3ExponentOffset)
 	if f == 0x7F || f == 0xFF {
 		// Positive and negative NaN
 		return float32(math.NaN())
@@ -244,21 +240,25 @@ func (f F8E4M3Fn) Float32() float32 {
 		}
 		// Normalize subnormal numbers.
 		exponent++
-		for mantissa&(exponentMask<<f32ExponentOffset) == 0 {
+		for mantissa&(F8E4M3ExponentMask<<F32ExponentOffset) == 0 {
 			mantissa <<= 1
 			exponent--
 		}
-		mantissa &= (1 << f32ExponentOffset) - 1
+		mantissa &= F32MantissaMask
 	}
-	exponent += f32ExponentBias - exponentBias
-	return math.Float32frombits(sign | (exponent << f32ExponentOffset) | mantissa)
+	exponent += F32ExponentBias - F8E4M3ExponentBias
+	return math.Float32frombits(sign | (exponent << F32ExponentOffset) | mantissa)
 }
 
 // F8E5M2
 
+// F8E5M2 bit allocation.
 const (
-	f8E5M2SignOffset     = 7
-	f8E5M2ExponentOffset = 2
+	F8E5M2SignOffset     = 7
+	F8E5M2ExponentOffset = 2
+	F8E5M2ExponentMask   = (1 << (F8E5M2SignOffset - F8E5M2ExponentOffset)) - 1
+	F8E5M2ExponentBias   = (1<<(F8E5M2SignOffset-F8E5M2ExponentOffset))/2 - 1
+	F8E5M2MantissaMask   = (1 << F8E5M2ExponentOffset) - 1
 )
 
 // F8E5M2 represents a float8 with 5 exponent bits and 2 mantissa bits.
@@ -270,27 +270,23 @@ type F8E5M2 uint8
 
 // Components returns the sign, exponent and mantissa bits separated.
 func (f F8E5M2) Components() (uint8, uint8, uint8) {
-	const exponentMask = (1 << (f8E5M2SignOffset - f8E5M2ExponentOffset)) - 1
-	const mantissaMask = (1 << f8E5M2ExponentOffset) - 1
-	sign := f >> f8E5M2SignOffset
-	exponent := (f >> f8E5M2ExponentOffset) & exponentMask
-	mantissa := f & mantissaMask
+	sign := f >> F8E5M2SignOffset
+	exponent := (f >> F8E5M2ExponentOffset) & F8E5M2ExponentMask
+	mantissa := f & F8E5M2MantissaMask
 	return uint8(sign), uint8(exponent), uint8(mantissa)
 }
 
 // Float32 returns the float32 equivalent.
 func (f F8E5M2) Float32() float32 {
-	const exponentMask = (1 << (f8E5M2SignOffset - f8E5M2ExponentOffset)) - 1
-	const exponentBias = (1<<(f8E5M2SignOffset-f8E5M2ExponentOffset))/2 - 1
 	sign8, exponent8, mantissa8 := f.Components()
 	// Realign sign right away.
-	sign := uint32(sign8) << f32SignOffset
+	sign := uint32(sign8) << F32SignOffset
 	exponent := uint32(exponent8)
 	// Realign mantissa right away. The fraction is 2 bits in float8 E5M2 and 23 bits in float32.
-	mantissa := uint32(mantissa8) << (f32ExponentOffset - f8E5M2ExponentOffset)
-	if exponent == exponentMask {
+	mantissa := uint32(mantissa8) << (F32ExponentOffset - F8E5M2ExponentOffset)
+	if exponent == F8E5M2ExponentMask {
 		// Either Inf or NaN.
-		return math.Float32frombits(sign | (f32exponentMask << f32ExponentOffset) | mantissa)
+		return math.Float32frombits(sign | (F32ExponentMask << F32ExponentOffset) | mantissa)
 	}
 	// If no exponent.
 	if exponent == 0 {
@@ -299,12 +295,12 @@ func (f F8E5M2) Float32() float32 {
 		}
 		// Normalize subnormal numbers.
 		exponent++
-		for mantissa&(exponentMask<<f32ExponentOffset) == 0 {
+		for mantissa&(F8E5M2ExponentMask<<F32ExponentOffset) == 0 {
 			mantissa <<= 1
 			exponent--
 		}
-		mantissa &= (1 << f32ExponentOffset) - 1
+		mantissa &= F32MantissaMask
 	}
-	exponent += f32ExponentBias - exponentBias
-	return math.Float32frombits(sign | (exponent << f32ExponentOffset) | mantissa)
+	exponent += F32ExponentBias - F8E5M2ExponentBias
+	return math.Float32frombits(sign | (exponent << F32ExponentOffset) | mantissa)
 }
