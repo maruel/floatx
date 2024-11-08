@@ -12,6 +12,36 @@ import (
 	"math"
 )
 
+// F32
+
+// F32 bit allocation.
+const (
+	// https://en.wikipedia.org/wiki/Single-precision_floating-point_format
+	F32SignOffset     = 31
+	F32ExponentOffset = 23
+	F32ExponentBias   = (1<<(F32SignOffset-F32ExponentOffset))/2 - 1
+	F32ExponentMask   = (1 << (F32SignOffset - F32ExponentOffset)) - 1
+	F32MantissaMask   = (1 << F32ExponentOffset) - 1
+)
+
+// F32 is a float32.
+//
+// The only use case is to call Components() on it.
+//
+// https://en.wikipedia.org/wiki/Single-precision_floating-point_format
+type F32 float32
+
+// Components returns the sign, exponent and mantissa bits separated.
+func (f F32) Components() (uint8, uint8, uint32) {
+	b := math.Float32bits(float32(f))
+	sign := b >> F32SignOffset
+	exponent := (b >> F32ExponentOffset) & F32ExponentMask
+	mantissa := b & F32MantissaMask
+	return uint8(sign), uint8(exponent), uint32(mantissa)
+}
+
+// BF16
+
 // BF16 bit allocation.
 const (
 	BF16SignOffset     = 15
@@ -134,18 +164,6 @@ func (f F16) Float32() float32 {
 	exponent += F32ExponentBias - F16ExponentBias
 	return math.Float32frombits(sign | (exponent << F32ExponentOffset) | mantissa)
 }
-
-// F32
-
-// F32 bit allocation.
-const (
-	// https://en.wikipedia.org/wiki/Single-precision_floating-point_format
-	F32SignOffset     = 31
-	F32ExponentOffset = 23
-	F32ExponentBias   = (1<<(F32SignOffset-F32ExponentOffset))/2 - 1
-	F32ExponentMask   = (1 << (F32SignOffset - F32ExponentOffset)) - 1
-	F32MantissaMask   = (1 << F32ExponentOffset) - 1
-)
 
 // F8E4M3
 

@@ -13,11 +13,42 @@ import (
 )
 
 type testData struct {
-	V        uint16
+	V        uint32
 	F        float32
 	Sign     uint8
 	Exponent uint8
-	Mantissa uint16
+	Mantissa uint32
+}
+
+func Test_F32_SpotCheck(t *testing.T) {
+	// Spot check a few values to not take any chance.
+	data := []testData{
+		{0x00000000, 0., 0, 0, 0},
+		{0x80000000, -0., 1, 0, 0},
+		{0x3F800000, 1., 0, 127, 0},
+		{0x3F800001, 1.00000011920928955, 0, 127, 1},
+		{0x41C80000, 25., 0, 131, 0x480000},
+		{0x00000001, 1.4012984643e-45, 0, 0, 1},
+		{0x007FFFFF, 1.1754942107e-38, 0, 0, 0x7FFFFF},
+		{0x7F7FFFFF, 3.4028234664e38, 0, 254, 0x7FFFFF},
+		{0x7F800000, float32(math.Inf(0)), 0, 255, 0},
+		{0x7F800001, float32(math.NaN()), 0, 255, 1},
+		{0xFF7FFFFF, -3.4028234664e38, 1, 254, 0x7FFFFF},
+		{0xFF800000, float32(math.Inf(-1)), 1, 255, 0},
+		{0xFF800001, float32(math.NaN()), 1, 255, 1},
+		{0xFFFFFFFF, float32(math.NaN()), 1, 0xFF, 0x7FFFFF},
+	}
+	for i, line := range data {
+		t.Run(fmt.Sprintf("#%d: %g", i, line.F), func(t *testing.T) {
+			f := floatx.F32(math.Float32frombits(line.V))
+			testOne32(t, f, line)
+			if got := float32(f); got != line.F {
+				if !math.IsNaN(float64(got)) && !math.IsNaN(float64(line.F)) {
+					t.Errorf("%g != %g", got, line.F)
+				}
+			}
+		})
+	}
 }
 
 func Test_BF16_All(t *testing.T) {
@@ -217,6 +248,10 @@ type fn16 interface {
 	Float32() float32
 }
 
+type fn32 interface {
+	Components() (uint8, uint8, uint32)
+}
+
 func testOne8[T fn8](t *testing.T, f T, line testData) {
 	sign, exponent, mantissa := f.Components()
 	if sign != line.Sign {
@@ -225,7 +260,7 @@ func testOne8[T fn8](t *testing.T, f T, line testData) {
 	if exponent != line.Exponent {
 		t.Errorf("exponent: want=%d  got=%d", line.Exponent, exponent)
 	}
-	if uint16(mantissa) != line.Mantissa {
+	if uint32(mantissa) != line.Mantissa {
 		t.Errorf("mantissa: want=%d  got=%d", line.Mantissa, mantissa)
 	}
 	if got := f.Float32(); got != line.F {
@@ -243,13 +278,26 @@ func testOne16[T fn16](t *testing.T, f T, line testData) {
 	if exponent != line.Exponent {
 		t.Errorf("exponent: want=%d  got=%d", line.Exponent, exponent)
 	}
-	if mantissa != line.Mantissa {
+	if uint32(mantissa) != line.Mantissa {
 		t.Errorf("mantissa: want=%d  got=%d", line.Mantissa, mantissa)
 	}
 	if got := f.Float32(); got != line.F {
 		if !math.IsNaN(float64(got)) && !math.IsNaN(float64(line.F)) {
 			t.Errorf("%g != %g", got, line.F)
 		}
+	}
+}
+
+func testOne32[T fn32](t *testing.T, f T, line testData) {
+	sign, exponent, mantissa := f.Components()
+	if sign != line.Sign {
+		t.Errorf("sign: want=%d  got=%d", line.Sign, sign)
+	}
+	if exponent != line.Exponent {
+		t.Errorf("exponent: want=%d  got=%d", line.Exponent, exponent)
+	}
+	if uint32(mantissa) != line.Mantissa {
+		t.Errorf("mantissa: want=%x  got=%x", line.Mantissa, mantissa)
 	}
 }
 
