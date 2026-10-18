@@ -8,15 +8,15 @@ checks in `.github/workflows/test.yml`. Install versioned hooks with
 `make test` runs coverage and benchmark smoke checks and writes ignored
 `coverage.txt`. Tests use a 600-second timeout.
 
-CI shares checkout and locked Python setup in one Ubuntu check job. Runtime
-tests use the existing Go version before static checks switch to Go 1.27.
+CI shares checkout, locked Python execution and Go 1.27 across one Ubuntu check
+job.
 
-Tooling is pinned independently of the runtime Go version in go.mod. Static
-checks use Go 1.27 in CI to support golangci-lint v2.14.0.
+Go 1.27.0 or newer is required. golangci-lint v2.14.0 is tracked in go.mod and
+runs with `go tool golangci-lint`.
 
 The shared script index is generated with
 `uv run --locked python scripts/update_agents_file_index.py`; use `--check` to validate it.
 
-Python scripts and Ruff run through `uv run --locked`; `make tools` syncs the
-locked development environment. `pyproject.toml` and `uv.lock` define the tools,
+Python scripts and Ruff run through `uv run --locked`, which automatically syncs
+the locked environment. `pyproject.toml` and `uv.lock` define the Python tools,
 and `.editorconfig` defines shared editor defaults.

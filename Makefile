@@ -4,9 +4,8 @@
 
 # Repository development targets and pinned static analysis tools.
 .DEFAULT_GOAL := help
-.PHONY: build fix git-hooks help test tools verify
+.PHONY: build fix git-hooks help test verify
 
-GOLANGCI_LINT := go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.14.0
 ACTIONLINT := go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
 ADDLICENSE := go run github.com/google/addlicense@v1.2.0
 
@@ -16,28 +15,28 @@ help:
 		'make fix' 'Apply formatting and safe lint fixes' \
 		'make verify' 'Run static checks' \
 		'make test' 'Run Go tests with coverage and benchmark smoke checks' \
-		'make git-hooks' 'Install versioned Git hooks' \
-		'make tools' 'Sync locked development tools'
+		'make git-hooks' 'Install versioned Git hooks'
 
-fix: tools
+fix:
 	@uv run --locked ruff check --fix scripts
 	@uv run --locked ruff format scripts
 	@uv run --locked python scripts/update_agents_file_index.py
-	@$(GOLANGCI_LINT) fmt
-	@$(GOLANGCI_LINT) run --show-stats=false --fix ./...
+	@go tool golangci-lint fmt
+	@go tool golangci-lint run --show-stats=false --fix ./...
 
-verify: tools
+verify:
 	@uv run --locked ruff check scripts
 	@uv run --locked ruff format --check scripts
 	@$(ACTIONLINT)
-	@$(GOLANGCI_LINT) fmt --diff
-	@$(GOLANGCI_LINT) run --show-stats=false ./...
+	@go tool golangci-lint fmt --diff
+	@go tool golangci-lint run --show-stats=false ./...
 	@go vet -unsafeptr=false ./...
 	@go test -run '^$$' ./...
 	@$(ADDLICENSE) -ignore '.venv/**' -ignore '.ruff_cache/**' -ignore 'third_party/**' -ignore 'vendor/**' -check .
 	@uv run --locked python scripts/lint_binaries.py
 	@uv run --locked python scripts/update_agents_file_index.py --check
-	@git ls-files -z | xargs -0 go run github.com/client9/misspell/cmd/misspell@v0.3.4 -error
+	# Module metadata contains upstream dependency names rather than prose.
+	@git ls-files -z -- . ':(exclude)go.mod' ':(exclude)go.sum' | xargs -0 go run github.com/client9/misspell/cmd/misspell@v0.3.4 -error
 	@go mod tidy -diff
 
 build:
@@ -48,6 +47,3 @@ test:
 
 git-hooks:
 	@./scripts/install-git-hooks.sh
-
-tools:
-	@uv sync --locked --quiet

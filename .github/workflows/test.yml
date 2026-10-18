@@ -49,11 +49,6 @@ jobs:
           git diff
           false
         fi
-    - name: Set up static-check Go toolchain
-      if: always()
-      uses: actions/setup-go@v7
-      with:
-        go-version: '1.27.x'
     - name: Static checks
       if: always()
       run: make verify
@@ -89,7 +84,7 @@ jobs:
     - uses: actions/checkout@v7
     - uses: actions/setup-go@v7
       with:
-        go-version: '1.27.x'
+        go-version-file: go.mod
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v4
       with:
