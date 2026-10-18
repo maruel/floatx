@@ -4,14 +4,10 @@
 
 # Repository development targets and pinned static analysis tools.
 .DEFAULT_GOAL := help
-.PHONY: build fix git-hooks help test verify
-
-ACTIONLINT := go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
-ADDLICENSE := go run github.com/google/addlicense@v1.2.0
+.PHONY: fix git-hooks help test verify
 
 help:
 	@printf '  %-14s - %s\n' \
-		'make build' 'Build all Go packages' \
 		'make fix' 'Apply formatting and safe lint fixes' \
 		'make verify' 'Run static checks' \
 		'make test' 'Run Go tests with coverage and benchmark smoke checks' \
@@ -27,20 +23,17 @@ fix:
 verify:
 	@uv run --locked ruff check scripts
 	@uv run --locked ruff format --check scripts
-	@$(ACTIONLINT)
+	@go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
 	@go tool golangci-lint fmt --diff
 	@go tool golangci-lint run --show-stats=false ./...
 	@go vet -unsafeptr=false ./...
 	@go test -run '^$$' ./...
-	@$(ADDLICENSE) -ignore '.venv/**' -ignore '.ruff_cache/**' -ignore 'third_party/**' -ignore 'vendor/**' -check .
+	@go tool addlicense -ignore '.venv/**' -ignore '.ruff_cache/**' -ignore 'third_party/**' -ignore 'vendor/**' -check .
 	@uv run --locked python scripts/lint_binaries.py
 	@uv run --locked python scripts/update_agents_file_index.py --check
 	# Module metadata contains upstream dependency names rather than prose.
 	@git ls-files -z -- . ':(exclude)go.mod' ':(exclude)go.sum' | xargs -0 go run github.com/client9/misspell/cmd/misspell@v0.3.4 -error
 	@go mod tidy -diff
-
-build:
-	@go build ./...
 
 test:
 	@go test -timeout=600s -covermode=count -coverprofile coverage.txt -bench=. -benchtime=1x ./...

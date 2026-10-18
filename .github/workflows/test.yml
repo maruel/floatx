@@ -56,14 +56,8 @@ jobs:
       if: always()
       run: |
         go generate ./...
-        # Also test for untracked files. go generate should not generate ignored
-        # files either.
-        TOUCHED=$(git status --porcelain --ignored -- . \
-          ':(exclude).venv' ':(exclude).ruff_cache' \
-          ':(top,exclude,literal)coverage.txt' ':(top,exclude,literal)codecov' \
-          ':(top,exclude,literal)codecov.SHA256SUM' ':(top,exclude,literal)codecov.SHA256SUM.sig' \
-          ':(top,exclude,literal)codecov.exe' ':(top,exclude,literal)codecov.exe.SHA256SUM' \
-          ':(top,exclude,literal)codecov.exe.SHA256SUM.sig')
+        # Also test for nonignored untracked files.
+        TOUCHED=$(git status --porcelain)
         if ! test -z "$TOUCHED"; then
           echo "go generate created these files, please fix:"
           echo "$TOUCHED"
