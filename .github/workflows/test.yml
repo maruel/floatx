@@ -25,10 +25,6 @@ jobs:
     - uses: actions/setup-go@v7
       with:
         go-version-file: go.mod
-    - name: 'go install necessary tools'
-      if: always()
-      run: |
-        go install github.com/maruel/pat/cmd/ba@v0.0.4
     - name: 'Check: go test -cover'
       if: always()
       run: make test
@@ -36,9 +32,6 @@ jobs:
     - uses: codecov/codecov-action@v7
       with:
         token: ${{secrets.CODECOV_TOKEN}}
-    - name: 'Cleanup'
-      if: always()
-      run: rm coverage.txt
     - name: "Check: tree is clean"
       if: always()
       run: |
